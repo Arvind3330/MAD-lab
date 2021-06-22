@@ -1,0 +1,211 @@
+activity_main.xml
+code:
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@drawable/arvins_background"
+    tools:context=".MainActivity">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="125dp"
+        android:src="@drawable/ic_musics" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/player_position"
+        android:text="00:00"
+        android:textStyle="bold"
+        android:textColor="@android:color/white"/>
+
+      <SeekBar
+          android:layout_width="0dp"
+          android:layout_height="wrap_content"
+          android:layout_weight="1"
+          android:id="@+id/seek_bar"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/player_duration"
+            android:text="00:00"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"/>
+
+    </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <ImageView
+             android:layout_width="60dp"
+             android:layout_height="60dp"
+             android:id="@+id/bt_rew"
+             android:src="@drawable/ic_reverse"/>
+
+            <ImageView
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:id="@+id/bt_ff"
+            android:src="@drawable/ic_forward"/>
+
+            <ImageView
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:id="@+id/bt_pause"
+                android:src="@drawable/ic_pause"/>
+
+            <ImageView
+              android:layout_width="60dp"
+              android:layout_height="60dp"
+              android:id="@+id/bt_play"
+              android:src="@drawable/ic_play"/>
+        </LinearLayout>
+
+
+</LinearLayout>
+
+
+MainActivity.java
+code:
+
+package com.example.project;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.annotation.SuppressLint;
+import android.media.MediaPlayer;
+import android.os.Bundle;
+import android.os.Handler;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.SeekBar;
+import android.widget.TextView;
+
+import java.util.concurrent.TimeUnit;
+
+public class MainActivity extends AppCompatActivity {
+    TextView playerPosition,playerDuration;
+    SeekBar seekBar;
+    ImageView btRew,btPlay,btPause,btFf;
+    MediaPlayer mediaPlayer;
+    Handler handler = new Handler();
+    Runnable runnable;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        playerPosition = findViewById(R.id.player_position);
+        playerDuration = findViewById(R.id.player_duration);
+        seekBar = findViewById(R.id.seek_bar);
+        btRew = findViewById(R.id.bt_rew);
+        btFf = findViewById(R.id.bt_ff);
+        btPause = findViewById(R.id.bt_pause);
+        btPlay = findViewById(R.id.bt_play);
+
+        mediaPlayer = MediaPlayer.create(this,R.raw.song);
+
+        runnable = new Runnable() {
+            @Override
+            public void run() {
+                seekBar.setProgress(mediaPlayer.getCurrentPosition());
+                handler.postDelayed(this,500);
+            }
+        };
+
+        int duration = mediaPlayer.getDuration();
+        String sDuration = convertFormat(duration);
+        playerDuration.setText(sDuration);
+
+        btRew.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int currentPosition = mediaPlayer.getCurrentPosition();
+                if (mediaPlayer.isPlaying() && currentPosition > 5000){
+                    currentPosition = currentPosition - 5000;
+                    playerPosition.setText(convertFormat(currentPosition));
+                    mediaPlayer.seekTo(currentPosition);
+                }
+            }
+        });
+
+        btFf.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int currentPosition = mediaPlayer.getCurrentPosition();
+                int duration = mediaPlayer.getDuration();
+                if (mediaPlayer.isPlaying() && duration != currentPosition){
+                    currentPosition = currentPosition + 5000;
+                    playerPosition.setText(convertFormat(currentPosition));
+                    mediaPlayer.seekTo(currentPosition);
+                }
+            }
+        });
+
+        btPause.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mediaPlayer.pause();
+                handler.removeCallbacks(runnable);
+            }
+        });
+
+        btPlay.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mediaPlayer.start();
+                seekBar.setMax(mediaPlayer.getDuration());
+                handler.postDelayed(runnable,0);
+            }
+        });
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser){
+                    mediaPlayer.seekTo(progress);
+                }
+                playerPosition.setText(convertFormat(mediaPlayer.getCurrentPosition()));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
+        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                mediaPlayer.seekTo(0);
+            }
+        });
+    }
+    @SuppressLint("DefaultLocale")
+    private String convertFormat(int duration) {
+        return String.format("%02d:%02d",
+                TimeUnit.MILLISECONDS.toMinutes(duration)
+                ,TimeUnit.MILLISECONDS.toSeconds(duration) -
+                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration)));
+    }
+}
